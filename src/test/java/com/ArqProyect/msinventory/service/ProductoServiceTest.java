@@ -1,17 +1,16 @@
 package com.ArqProyect.msinventory.service;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import com.ArqProyect.msinventory.model.Producto;
 import com.ArqProyect.msinventory.repository.ProductoRepository;
 
-import java.util.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.*;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import java.util.*;
 
 class ProductoServiceTest {
 
@@ -27,37 +26,64 @@ class ProductoServiceTest {
     }
 
     @Test
-    void testCrearProducto() {
-        Producto producto = new Producto();
-        producto.setNombre("Arroz");
-        producto.setDescripcion("Grano largo");
-        producto.setCategoria("Alimentos");
+    void listarProductos_retornaLista() {
+        List<Producto> productos = Arrays.asList(
+            new Producto("1", "Prod1", "Cat1", "Desc1"),
+            new Producto("2", "Prod2", "Cat2", "Desc2")
+        );
 
-        when(productoRepository.save(any(Producto.class))).thenReturn(producto);
+        when(productoRepository.findAll()).thenReturn(productos);
 
-        Producto resultado = productoService.crearProducto(producto);
+        List<Producto> resultado = productoService.listarProductos();
 
-        assertNotNull(resultado);
-        assertEquals("Arroz", resultado.getNombre());
-        verify(productoRepository, times(1)).save(producto);
-    }
-
-    @Test
-    void testListarProductos() {
-        Producto producto1 = new Producto();
-        producto1.setId("1");
-        producto1.setNombre("Producto A");
-
-        Producto producto2 = new Producto();
-        producto2.setId("2");
-        producto2.setNombre("Producto B");
-
-        when(productoRepository.findAll()).thenReturn(Arrays.asList(producto1, producto2));
-
-        List<Producto> productos = productoService.listarProductos();
-
-        assertEquals(2, productos.size());
+        assertEquals(2, resultado.size());
         verify(productoRepository, times(1)).findAll();
     }
 
+    @Test
+    void obtenerProductoPorId_existente_retornaProducto() {
+        Producto producto = new Producto("1", "Prod1", "Cat1", "Desc1");
+        when(productoRepository.findById("1")).thenReturn(Optional.of(producto));
+
+        Producto resultado = productoService.obtenerProductoPorId("1");
+
+        assertNotNull(resultado);
+        assertEquals("Prod1", resultado.getNombre());
+        verify(productoRepository).findById("1");
+    }
+
+    @Test
+    void obtenerProductoPorId_noExistente_lanzaExcepcion() {
+        when(productoRepository.findById("99")).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            productoService.obtenerProductoPorId("99");
+        });
+
+        assertTrue(exception.getMessage().contains("Producto no encontrado"));
+        verify(productoRepository).findById("99");
+    }
+
+    @Test
+    void crearProducto_guardaYRetornaProducto() {
+        Producto producto = new Producto(null, "ProdNuevo", "CatN", "DescN");
+        Producto productoGuardado = new Producto("1", "ProdNuevo", "CatN", "DescN");
+
+        when(productoRepository.save(producto)).thenReturn(productoGuardado);
+
+        Producto resultado = productoService.crearProducto(producto);
+
+        assertEquals("1", resultado.getId());
+        assertEquals("ProdNuevo", resultado.getNombre());
+        verify(productoRepository).save(producto);
+    }
+
+    @Test
+    void deleteProducto_eliminaProducto() {
+        doNothing().when(productoRepository).deleteById("1");
+
+        productoService.deleteProducto("1");
+
+        verify(productoRepository).deleteById("1");
+    }
 }

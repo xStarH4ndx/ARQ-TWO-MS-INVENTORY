@@ -17,7 +17,7 @@ public class Compra {
     @Id
     private String id;
     private String nombre;
-    private String casaID;
+    private String casaId;
     private Date fechaCompra;
     private List<ItemCompra> itemsCompra;    
 }
