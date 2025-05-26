@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 
 import com.ArqProyect.msinventory.model.Producto;
-import com.ArqProyect.msinventory.repository.ProductoRepository;
 
 import java.util.List;
 
