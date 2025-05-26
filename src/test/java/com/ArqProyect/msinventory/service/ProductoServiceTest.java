@@ -1,10 +1,12 @@
-package com.ArqProyect.mssubjects.service;
+package com.ArqProyect.msinventory.service;
 
-import com.ArqProyect.mssubjects.model.Producto;
-import com.ArqProyect.mssubjects.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+
+import com.ArqProyect.msinventory.model.Producto;
+import com.ArqProyect.msinventory.repository.ProductoRepository;
+
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;

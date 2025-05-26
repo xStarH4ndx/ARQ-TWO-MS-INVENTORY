@@ -1,13 +1,13 @@
-package com.ArqProyect.mssubjects;
+package com.ArqProyect.msinventory;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MsSubjectsApplication {
+public class MsInventoryApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(MsSubjectsApplication.class, args);
+		SpringApplication.run(MsInventoryApplication.class, args);
 	}
 
 }

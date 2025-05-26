@@ -1,10 +1,10 @@
-package com.ArqProyect.mssubjects;
+package com.ArqProyect.msinventory;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class MsSubjectsApplicationTests {
+class MsInventoryApplicationTests {
 
 	@Test
 	void contextLoads() {

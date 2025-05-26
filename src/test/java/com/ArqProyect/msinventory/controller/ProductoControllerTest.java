@@ -1,7 +1,7 @@
-package com.ArqProyect.mssubjects.controller;
+package com.ArqProyect.msinventory.controller;
 
-import com.ArqProyect.mssubjects.model.Producto;
-import com.ArqProyect.mssubjects.repository.ProductoRepository;
+import com.ArqProyect.msinventory.model.Producto;
+import com.ArqProyect.msinventory.repository.ProductoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

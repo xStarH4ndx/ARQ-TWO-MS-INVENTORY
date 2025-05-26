@@ -1,7 +1,8 @@
-package com.ArqProyect.mssubjects.repository;
+package com.ArqProyect.msinventory.repository;
 
-import com.ArqProyect.mssubjects.model.Producto;
 import org.springframework.data.mongodb.repository.MongoRepository;
+
+import com.ArqProyect.msinventory.model.Producto;
 
 public interface ProductoRepository extends MongoRepository<Producto, String> {
 }
