@@ -19,7 +19,7 @@ public class CompraService {
     private final ObjectMapper objectMapper;
 
     private static final String INVENTORY_EXCHANGE = "inventory.exchange";
-    private static final String COMPRA_ROUTING_KEY = "compra.registrada";
+    private static final String COMPRA_ROUTING_KEY = "compra.registrada"; // ROUTING KEY PARA MSPAYMENTS
 
     public List<Compra> listarCompras() {
         return compraRepository.findAll();
