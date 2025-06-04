@@ -1,9 +1,12 @@
 package com.ArqProyect.msinventory.config;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ArqProyect.msinventory.dto.CompraCreacionDTO;
 import com.ArqProyect.msinventory.model.Producto; // Asumo que recibirás un Producto para crear
+import com.ArqProyect.msinventory.service.CompraService;
 import com.ArqProyect.msinventory.service.ProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -33,10 +36,16 @@ public class InventoryConsumer {
     private ProductoService productoService;
 
     @Autowired
+    private CompraService compraService; // Asegúrate de tener un servicio para manejar compras
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     // Listener para la cola de creación de productos
-    @RabbitListener(queues = "inventory.create.queue")
+    @RabbitListener(queues = "producto.create.queue")
     public void handleCreateProductMessage(String message) {
         System.out.println("MS-INVENTORY: Mensaje recibido para crear producto: " + message);
         try {
@@ -56,7 +65,7 @@ public class InventoryConsumer {
     }
 
     // Listener para la cola de obtención de productos
-    @RabbitListener(queues = "inventory.get.queue")
+    @RabbitListener(queues = "producto.get.queue")
     public void handleGetProductMessage(String message) {
         System.out.println("MS-INVENTORY: Mensaje recibido para obtener producto: " + message);
         try {
@@ -77,4 +86,23 @@ public class InventoryConsumer {
             System.err.println("MS-INVENTORY: Error al procesar mensaje de obtención de producto: " + e.getMessage());
         }
     }
+
+    // Listener para la cola de compra
+    @RabbitListener(queues = "compra.create.queue")
+    public void handleCompraMessage(String message) {
+        try {
+            CompraCreacionDTO compraDto = objectMapper.readValue(message, CompraCreacionDTO.class);
+            compraService.crearCompraDesdeDTO(compraDto);
+            rabbitTemplate.convertAndSend(
+                "apigateway.exchange",
+                "payments.compra.playload",
+                objectMapper.writeValueAsString(compraDto)
+            );
+            System.out.println("MS-INVENTORY: Compra procesada y enviada a payments: " + compraDto);
+        }catch (Exception e) {
+            System.err.println("MS-INVENTORY: Error al procesar mensaje de compra: " + e.getMessage());
+        }
+    }
+
+
 }
