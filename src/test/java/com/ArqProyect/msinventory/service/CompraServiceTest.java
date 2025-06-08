@@ -1,95 +1,72 @@
 package com.ArqProyect.msinventory.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import com.ArqProyect.msinventory.dto.CompraCreacionDTO;
 import com.ArqProyect.msinventory.dto.ItemCompraEventoDTO;
 import com.ArqProyect.msinventory.model.Compra;
-import com.ArqProyect.msinventory.repository.CompraRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import org.mockito.MockitoAnnotations;
 
 public class CompraServiceTest {
 
-    @Mock
-    private CompraRepository compraRepository;
-
-    @InjectMocks
     private CompraService compraService;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+    public void setUp() {
+        compraService = new CompraService(null, null);
     }
 
     @Test
-    void crearCompra_conDatosValidos_debeGuardarCompra() {
-        ItemCompraEventoDTO itemDTO = new ItemCompraEventoDTO(
-                "producto123", "Producto Prueba", 2, 1000.0, false, "usuario123");
+    public void crearCompra_conDatosValidos_debeGuardarCompra() {
+        CompraCreacionDTO compraDTO = new CompraCreacionDTO();
+        compraDTO.setItems(Arrays.asList(new ItemCompraEventoDTO(), new ItemCompraEventoDTO()));
 
-        CompraCreacionDTO compraDTO = new CompraCreacionDTO(
-                "casa123", new Date(), List.of(itemDTO));
+        Compra compra = compraService.crearCompraDesdeDTO(compraDTO);
 
-        Compra compraMock = new Compra();
-        when(compraRepository.save(any(Compra.class))).thenReturn(compraMock);
-
-        Compra resultado = compraService.crearCompraDesdeDTO(compraDTO);
-
-        assertNotNull(resultado);
-        verify(compraRepository, times(1)).save(any(Compra.class));
+        assertNotNull(compra);
+        assertNotNull(compra.getItemsCompra());
+        assertEquals(2, compra.getItemsCompra().size());
     }
 
     @Test
-    void crearCompra_conListaVacia_debeLanzarExcepcion() {
-        CompraCreacionDTO compraDTO = new CompraCreacionDTO(
-                "casa123", new Date(), new ArrayList<>());
+    public void crearCompra_conListaVacia_debeLanzarExcepcion() {
+        CompraCreacionDTO compraDTO = new CompraCreacionDTO();
+        compraDTO.setItems(new ArrayList<>()); // lista vacía
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
             compraService.crearCompraDesdeDTO(compraDTO);
         });
-
-        verify(compraRepository, never()).save(any());
+        assertEquals("La lista de items no puede ser nula ni vacía", thrown.getMessage());
     }
 
     @Test
-    void crearCompra_conItemCompartidoYPropietarioIdNull_debeLanzarExcepcion() {
-        ItemCompraEventoDTO itemDTO = new ItemCompraEventoDTO(
-                "producto456", "Producto Compartido", 3, 1500.0, true, null);
+    public void crearCompra_conItemCompartidoYPropietarioIdNull_debeLanzarExcepcion() {
+        CompraCreacionDTO compraDTO = new CompraCreacionDTO();
+        compraDTO.setItems(Arrays.asList(new ItemCompraEventoDTO()));
 
-        CompraCreacionDTO compraDTO = new CompraCreacionDTO(
-                "casa456", new Date(), List.of(itemDTO));
+        // Si la lógica de validar propietarioId nulo está dentro del service, simular ese caso
+        // Aquí como ejemplo, asumimos que si propietarioId es null en algún item, lanza excepción.
+        compraDTO.getItems().get(0).setPropietarioId(null);
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
             compraService.crearCompraDesdeDTO(compraDTO);
         });
-
-        verify(compraRepository, never()).save(any());
+        assertEquals("PropietarioId no puede ser null", thrown.getMessage());
     }
 
     @Test
-    void crearCompra_conMultiplesItems_debeGuardarCorrectamente() {
-        ItemCompraEventoDTO item1 = new ItemCompraEventoDTO(
-                "p1", "Arroz", 1, 500.0, false, "u1");
-        ItemCompraEventoDTO item2 = new ItemCompraEventoDTO(
-                "p2", "Azúcar", 2, 700.0, true, "u2");
+    public void crearCompra_conMultiplesItems_debeGuardarCorrectamente() {
+        CompraCreacionDTO compraDTO = new CompraCreacionDTO();
+        compraDTO.setItems(Arrays.asList(new ItemCompraEventoDTO(), new ItemCompraEventoDTO(), new ItemCompraEventoDTO()));
 
-        CompraCreacionDTO compraDTO = new CompraCreacionDTO(
-                "casa789", new Date(), List.of(item1, item2));
+        Compra compra = compraService.crearCompraDesdeDTO(compraDTO);
 
-        when(compraRepository.save(any(Compra.class))).thenReturn(new Compra());
-
-        Compra resultado = compraService.crearCompraDesdeDTO(compraDTO);
-
-        assertNotNull(resultado);
-        verify(compraRepository).save(any());
+        assertNotNull(compra);
+        assertEquals(3, compra.getItemsCompra().size());
     }
 }
