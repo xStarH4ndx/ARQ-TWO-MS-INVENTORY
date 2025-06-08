@@ -28,8 +28,6 @@ public class InventoryConsumer {
     @RabbitListener(queues = "msinventory.queue")
     public Object handleInventoryQueue(MessageDTO messageDTO) {
         try {
-            System.out.println("MS-INVENTORY: Mensaje recibido deserializado: " + messageDTO);
-
             PayloadDTO payload = messageDTO.getData();
             if (payload == null) {
                 return "Error: 'data' no encontrado en mensaje";
@@ -37,9 +35,6 @@ public class InventoryConsumer {
 
             String action = payload.getAction();
             JsonNode data = payload.getBody();
-
-            System.out.println("MS-INVENTORY: Acción: " + action);
-            System.out.println("MS-INVENTORY: Data -> " + (data != null ? data.toPrettyString() : "null"));
 
             switch (action) {
                 // ACCIONES PRODUCTOS
@@ -72,6 +67,9 @@ public class InventoryConsumer {
                 case "listarInventario":
                     return handleListarInventario(data);
 
+                case "actualizarInventario":
+                    return handleActualizarInventario(data);
+
                 default:
                     System.out.println("MS-INVENTORY: Acción no reconocida: " + action);
                     return "Acción no reconocida: " + action;
@@ -84,6 +82,15 @@ public class InventoryConsumer {
         }
     }
     // ACCIONES INVENTARIO
+    private Inventario handleActualizarInventario(JsonNode data) {
+        if (data == null || !data.has("id") || !data.has("nuevaCantidadStock")) {
+            throw new IllegalArgumentException("El cuerpo del inventario debe contener 'id' y 'nuevaCantidadStock'");
+        }
+        String id = data.get("id").asText();
+        int nuevaCantidadStock = data.get("nuevaCantidadStock").asInt();
+        return inventarioService.actualizarInventario(id, nuevaCantidadStock);
+    }
+
     private List<Inventario> handleListarInventario(JsonNode data) {
         if (data == null || !data.isTextual()) {
             throw new IllegalArgumentException("El campo 'casaId' es requerido para listarInventario");

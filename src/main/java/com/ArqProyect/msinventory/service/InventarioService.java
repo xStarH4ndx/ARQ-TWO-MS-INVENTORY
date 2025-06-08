@@ -52,4 +52,13 @@ public class InventarioService {
         inventario.setCantidadStock(Math.max(nuevaCantidad, 0));
         return inventarioRepository.save(inventario);
     }
+
+    public Inventario actualizarInventario(String id, int nuevaCantidadStock) {
+        Inventario inventario = inventarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Inventario no encontrado con id: " + id));
+
+        inventario.setCantidadStock(nuevaCantidadStock);
+        return inventarioRepository.save(inventario);
+    }
+
 }
