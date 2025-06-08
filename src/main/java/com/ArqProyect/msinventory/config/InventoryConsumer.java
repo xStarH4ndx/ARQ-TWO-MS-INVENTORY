@@ -41,11 +41,11 @@ public class InventoryConsumer {
                 case "obtenerProducto":
                     return handleObtenerProducto(data);
 
+                case "eliminarProducto":
+                    return handleEliminarProducto(data);
+
                 case "listarProductos":
                     return handleListarProductos();
-
-                case "saludar":
-                    return handleSaludar(data);
 
                 default:
                     System.out.println("MS-INVENTORY: Acción no reconocida: " + action);
@@ -74,24 +74,26 @@ public class InventoryConsumer {
     }
 
     private Producto handleObtenerProducto(JsonNode data) {
+        if (data == null || !data.isTextual()) {
+            throw new IllegalArgumentException("El campo 'id' es requerido para obtenerProducto");
+        }
         String productId = data.asText();
         Producto producto = productoService.obtenerProductoPorId(productId);
         System.out.println("MS-INVENTORY: Producto obtenido: " + producto);
         return producto;
     }
 
-    private String handleSaludar(JsonNode data) {
-        System.out.println("MS-INVENTORY: Datos recibidos en saludar -> " + data.toString());
-
-        try {
-            if (data.isTextual()) {
-                return "Hola " + data.asText() + ", desde ms-inventory!";
-            } else {
-                return "Hola desconocido, el formato del nombre no es texto.";
-            }
-        } catch (Exception e) {
-            return "Error al procesar saludo: " + e.getMessage();
+    private String handleEliminarProducto(JsonNode data) {
+        // Espera un JSON como {"id": "valorId"}
+        if (data == null || !data.isTextual()) {
+            return "Error: el campo 'id' es requerido para eliminarProducto";
         }
+        String productId = data.asText();
+        productoService.deleteProducto(productId);
+        String msg = "MS-INVENTORY: Producto eliminado con ID: " + productId;
+        System.out.println(msg);
+        return msg;
     }
 
 }
+
