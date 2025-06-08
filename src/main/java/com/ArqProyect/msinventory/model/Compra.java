@@ -1,6 +1,6 @@
 package com.ArqProyect.msinventory.model;
 
-import java.sql.Date;
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
@@ -17,6 +17,6 @@ public class Compra {
     @Id
     private String id;
     private String casaId;
-    private Date fechaCompra;
+    private Instant  fechaCompra;
     private List<ItemCompra> itemsCompra;    
 }

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -22,8 +23,8 @@ public class CompraService {
     private final CompraRepository compraRepository;
     private final InventarioRepository inventarioRepository;
 
-    public List<Compra> listarCompras() {
-        return compraRepository.findAll();
+    public List<Compra> listarCompras(String casaId) {
+        return compraRepository.findByCasaId(casaId);
     }
 
     public Compra obtenerCompraPorId(String id) {
@@ -43,7 +44,7 @@ public class CompraService {
     private Compra convertirDTOaEntidad(CompraCreacionDTO dto) {
         Compra compra = new Compra();
         compra.setCasaId(dto.getCasaId());
-        compra.setFechaCompra(new java.sql.Date(dto.getFechaCompra().getTime()));
+        compra.setFechaCompra(Instant.now());
         compra.setItemsCompra(convertirItemDTOsAEntidades(dto.getItems()));
         return compra;
     }
@@ -68,8 +69,28 @@ public class CompraService {
     public void eliminarCompra(String id) {
         Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Compra no encontrada con id: " + id));
+        revertirInventario(compra.getItemsCompra(), compra.getCasaId());
         compraRepository.delete(compra);
     }
+
+    private void revertirInventario(List<ItemCompra> items, String casaId) {
+        for (ItemCompra item : items) {
+            List<Inventario> inventarios = inventarioRepository.findByCasaId(casaId).orElse(null);
+            if (inventarios != null) {
+                Inventario inventarioExistente = inventarios.stream()
+                        .filter(i -> i.getProductoId().equals(item.getProductoId()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (inventarioExistente != null) {
+                    int nuevaCantidad = inventarioExistente.getCantidadStock() - item.getCantidad();
+                    inventarioExistente.setCantidadStock(Math.max(nuevaCantidad, 0)); // evitar valores negativos
+                    inventarioRepository.save(inventarioExistente);
+                }
+            }
+        }
+    }
+
 
     private void validarCompraLogicaNegocio(CompraCreacionDTO dto) {
         for (ItemCompraEventoDTO item : dto.getItems()) {

@@ -1,7 +1,10 @@
 package com.ArqProyect.msinventory.config;
 
+import com.ArqProyect.msinventory.dto.CompraCreacionDTO;
 import com.ArqProyect.msinventory.dto.ProductoCreacionDTO;
+import com.ArqProyect.msinventory.model.Compra;
 import com.ArqProyect.msinventory.model.Producto;
+import com.ArqProyect.msinventory.service.CompraService;
 import com.ArqProyect.msinventory.service.ProductoService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +19,7 @@ import java.util.List;
 public class InventoryConsumer {
 
     private final ProductoService productoService;
+    private final CompraService compraService;
     private final ObjectMapper objectMapper;
 
     @RabbitListener(queues = "msinventory.queue")
@@ -35,6 +39,7 @@ public class InventoryConsumer {
             System.out.println("MS-INVENTORY: Data -> " + (data != null ? data.toPrettyString() : "null"));
 
             switch (action) {
+                // ACCIONES PRODUCTOS
                 case "crearProducto":
                     return handleCrearProducto(data);
 
@@ -46,6 +51,19 @@ public class InventoryConsumer {
 
                 case "listarProductos":
                     return handleListarProductos();
+                
+                // ACCIONES COMPRAS
+                case "crearCompra":
+                    return handleCrearCompra(data);
+
+                case "listarCompras":
+                    return handleListarCompras(data);
+
+                case "obtenerCompra":
+                    return handleObtenerCompra(data);
+
+                case "eliminarCompra":
+                    return handleEliminarCompra(data);
 
                 default:
                     System.out.println("MS-INVENTORY: Acción no reconocida: " + action);
@@ -59,6 +77,46 @@ public class InventoryConsumer {
         }
     }
 
+    // ACCIONES COMPRAS
+    private String handleCrearCompra(JsonNode data) throws Exception {
+        if (data == null) {
+            throw new IllegalArgumentException("El cuerpo de la compra (body) es null");
+        }
+        CompraCreacionDTO compraDTO = objectMapper.treeToValue(data, CompraCreacionDTO.class);
+        Compra nuevaCompra = compraService.crearCompraDesdeDTO(compraDTO);
+        String msg = "MS-INVENTORY: Compra creada con ID: " + nuevaCompra.getId();
+        return msg;
+    }
+
+    private List<Compra> handleListarCompras(JsonNode data) {
+        if (data == null || !data.isTextual()) {
+            throw new IllegalArgumentException("El campo 'id' es requerido para obtenerCompra");
+        }
+        String casaId = data.asText();
+        return compraService.listarCompras(casaId);
+    }
+
+    private Compra handleObtenerCompra(JsonNode data) {
+        if (data == null || !data.isTextual()) {
+            throw new IllegalArgumentException("El campo 'id' es requerido para obtenerCompra");
+        }
+        String compraId = data.asText();
+        return compraService.obtenerCompraPorId(compraId);
+    }
+
+    private String handleEliminarCompra(JsonNode data) {
+        if (data == null || !data.isTextual()) {
+            return "Error: el campo 'id' es requerido para eliminarCompra";
+        }
+        String compraId = data.asText();
+        compraService.eliminarCompra(compraId);
+        String msg = "MS-INVENTORY: Compra eliminada con ID: " + compraId;
+        System.out.println(msg);
+        return msg;
+    }
+
+
+    // ACCIONES PRODUCTOS
     private List<Producto> handleListarProductos() {
         return productoService.listarProductos();
     }
