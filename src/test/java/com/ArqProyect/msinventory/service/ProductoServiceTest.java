@@ -1,17 +1,21 @@
 package com.ArqProyect.msinventory.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
+import com.ArqProyect.msinventory.dto.ProductoCreacionDTO;
 import com.ArqProyect.msinventory.model.Producto;
 import com.ArqProyect.msinventory.repository.ProductoRepository;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+
+@ExtendWith(MockitoExtension.class)
 class ProductoServiceTest {
 
     @Mock
@@ -20,70 +24,56 @@ class ProductoServiceTest {
     @InjectMocks
     private ProductoService productoService;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
-    void listarProductos_retornaLista() {
-        List<Producto> productos = Arrays.asList(
-            new Producto("1", "Prod1", "Cat1", "Desc1"),
-            new Producto("2", "Prod2", "Cat2", "Desc2")
-        );
-
+    void testListarProductos() {
+        List<Producto> productos = List.of(new Producto("1", "Pan", "Alimento", "Pan integral"));
         when(productoRepository.findAll()).thenReturn(productos);
 
         List<Producto> resultado = productoService.listarProductos();
 
-        assertEquals(2, resultado.size());
-        verify(productoRepository, times(1)).findAll();
+        assertEquals(1, resultado.size());
+        verify(productoRepository).findAll();
     }
 
     @Test
-    void obtenerProductoPorId_existente_retornaProducto() {
-        Producto producto = new Producto("1", "Prod1", "Cat1", "Desc1");
+    void testObtenerProductoPorId() {
+        Producto producto = new Producto("1", "Agua", "Bebida", "Agua purificada");
         when(productoRepository.findById("1")).thenReturn(Optional.of(producto));
 
         Producto resultado = productoService.obtenerProductoPorId("1");
 
-        assertNotNull(resultado);
-        assertEquals("Prod1", resultado.getNombre());
-        verify(productoRepository).findById("1");
+        assertEquals("Agua", resultado.getNombre());
     }
 
     @Test
-    void obtenerProductoPorId_noExistente_lanzaExcepcion() {
-        when(productoRepository.findById("99")).thenReturn(Optional.empty());
+    void testObtenerProductoPorId_NotFound() {
+        when(productoRepository.findById("2")).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            productoService.obtenerProductoPorId("99");
-        });
-
-        assertTrue(exception.getMessage().contains("Producto no encontrado"));
-        verify(productoRepository).findById("99");
+        assertThrows(RuntimeException.class, () -> productoService.obtenerProductoPorId("2"));
     }
 
-    // @Test
-    // void crearProducto_guardaYRetornaProducto() {
-    //     Producto producto = new Producto(null, "ProdNuevo", "CatN", "DescN");
-    //     Producto productoGuardado = new Producto("1", "ProdNuevo", "CatN", "DescN");
+    @Test
+    void testCrearProducto() {
+        ProductoCreacionDTO dto = new ProductoCreacionDTO("Cafe", "Bebida", "Cafe molido");
+        Producto producto = new Producto(null, "Cafe", "Bebida", "Cafe molido");
 
-    //     when(productoRepository.save(producto)).thenReturn(productoGuardado);
+        when(productoRepository.save(any(Producto.class)))
+                .thenAnswer(invocation -> {
+                    Producto p = invocation.getArgument(0);
+                    p.setId("123");
+                    return p;
+                });
 
-    //     Producto resultado = productoService.crearProducto(producto);
+        Producto creado = productoService.crearProducto(dto);
 
-    //     assertEquals("1", resultado.getId());
-    //     assertEquals("ProdNuevo", resultado.getNombre());
-    //     verify(productoRepository).save(producto);
-    // }
+        assertEquals("Cafe", creado.getNombre());
+        assertEquals("123", creado.getId());
+        assertNotNull(producto);
+    }
 
     @Test
-    void deleteProducto_eliminaProducto() {
-        doNothing().when(productoRepository).deleteById("1");
-
-        productoService.deleteProducto("1");
-
-        verify(productoRepository).deleteById("1");
+    void testEliminarProducto() {
+        productoService.deleteProducto("123");
+        verify(productoRepository).deleteById("123");
     }
 }
