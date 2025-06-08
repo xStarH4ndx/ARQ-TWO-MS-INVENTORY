@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class InventoryConsumer {
@@ -17,15 +19,20 @@ public class InventoryConsumer {
     private final ObjectMapper objectMapper;
 
     @RabbitListener(queues = "msinventory.queue")
-    public Object handleInventoryQueue(String message) {
+    public Object handleInventoryQueue(MessageDTO messageDTO) {
         try {
-            JsonNode root = objectMapper.readTree(message);
-            System.out.println("MS-INVENTORY: Root -> " + root.toPrettyString());
+            System.out.println("MS-INVENTORY: Mensaje recibido deserializado: " + messageDTO);
 
-            JsonNode payload = root.get("data");
-            String action = payload.get("action").asText();
-            JsonNode data = payload.get("body");
+            PayloadDTO payload = messageDTO.getData();
+            if (payload == null) {
+                return "Error: 'data' no encontrado en mensaje";
+            }
 
+            String action = payload.getAction();
+            JsonNode data = payload.getBody();
+
+            System.out.println("MS-INVENTORY: Acción: " + action);
+            System.out.println("MS-INVENTORY: Data -> " + (data != null ? data.toPrettyString() : "null"));
 
             switch (action) {
                 case "crearProducto":
@@ -33,6 +40,9 @@ public class InventoryConsumer {
 
                 case "obtenerProducto":
                     return handleObtenerProducto(data);
+
+                case "listarProductos":
+                    return handleListarProductos();
 
                 case "saludar":
                     return handleSaludar(data);
@@ -44,19 +54,29 @@ public class InventoryConsumer {
 
         } catch (Exception e) {
             System.err.println("MS-INVENTORY: Error procesando mensaje: " + e.getMessage());
+            e.printStackTrace();
             return "Error: " + e.getMessage();
         }
     }
 
-    private Producto handleCrearProducto(JsonNode data) throws Exception {
+    private List<Producto> handleListarProductos() {
+        return productoService.listarProductos();
+    }
+
+    private String handleCrearProducto(JsonNode data) throws Exception {
+        if (data == null) {
+            throw new IllegalArgumentException("El cuerpo del producto (body) es null");
+        }
         ProductoCreacionDTO productoDTO = objectMapper.treeToValue(data, ProductoCreacionDTO.class);
         Producto nuevoProducto = productoService.crearProducto(productoDTO);
-        return nuevoProducto;
+        String msg = "MS-INVENTORY: Producto creado con ID: " + nuevoProducto.getId();
+        return msg;
     }
 
     private Producto handleObtenerProducto(JsonNode data) {
         String productId = data.asText();
         Producto producto = productoService.obtenerProductoPorId(productId);
+        System.out.println("MS-INVENTORY: Producto obtenido: " + producto);
         return producto;
     }
 
@@ -64,7 +84,6 @@ public class InventoryConsumer {
         System.out.println("MS-INVENTORY: Datos recibidos en saludar -> " + data.toString());
 
         try {
-            // Verifica si es texto plano (como "Bruno")
             if (data.isTextual()) {
                 return "Hola " + data.asText() + ", desde ms-inventory!";
             } else {
@@ -74,8 +93,5 @@ public class InventoryConsumer {
             return "Error al procesar saludo: " + e.getMessage();
         }
     }
-
-
-
 
 }
