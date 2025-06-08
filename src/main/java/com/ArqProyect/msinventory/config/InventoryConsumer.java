@@ -3,8 +3,10 @@ package com.ArqProyect.msinventory.config;
 import com.ArqProyect.msinventory.dto.CompraCreacionDTO;
 import com.ArqProyect.msinventory.dto.ProductoCreacionDTO;
 import com.ArqProyect.msinventory.model.Compra;
+import com.ArqProyect.msinventory.model.Inventario;
 import com.ArqProyect.msinventory.model.Producto;
 import com.ArqProyect.msinventory.service.CompraService;
+import com.ArqProyect.msinventory.service.InventarioService;
 import com.ArqProyect.msinventory.service.ProductoService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +22,7 @@ public class InventoryConsumer {
 
     private final ProductoService productoService;
     private final CompraService compraService;
+    private final InventarioService inventarioService;
     private final ObjectMapper objectMapper;
 
     @RabbitListener(queues = "msinventory.queue")
@@ -64,6 +67,10 @@ public class InventoryConsumer {
 
                 case "eliminarCompra":
                     return handleEliminarCompra(data);
+                
+                // ACCIONES INVENTARIO
+                case "listarInventario":
+                    return handleListarInventario(data);
 
                 default:
                     System.out.println("MS-INVENTORY: Acción no reconocida: " + action);
@@ -75,6 +82,14 @@ public class InventoryConsumer {
             e.printStackTrace();
             return "Error: " + e.getMessage();
         }
+    }
+    // ACCIONES INVENTARIO
+    private List<Inventario> handleListarInventario(JsonNode data) {
+        if (data == null || !data.isTextual()) {
+            throw new IllegalArgumentException("El campo 'casaId' es requerido para listarInventario");
+        }
+        String casaId = data.asText();
+        return inventarioService.listarInventarioCasa(casaId).orElse(null);
     }
 
     // ACCIONES COMPRAS

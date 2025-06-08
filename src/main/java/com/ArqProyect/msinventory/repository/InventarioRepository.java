@@ -8,5 +8,7 @@ import java.util.Optional;
 public interface InventarioRepository extends MongoRepository<Inventario, String> {
     // Método para buscar inventario por casaId
     Optional<List<Inventario>> findByCasaId(String casaId);
+    Optional<Inventario> findByCasaIdAndProductoId(String casaId, String productoId);
+    
     
 }

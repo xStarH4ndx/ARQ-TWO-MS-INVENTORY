@@ -51,7 +51,7 @@ class CompraServiceTest {
 
         when(compraRepository.findAll()).thenReturn(List.of(compra));
 
-        List<Compra> resultado = compraService.listarCompras();
+        List<Compra> resultado = compraService.listarCompras(null);
 
         assertNotNull(resultado);
         assertEquals(1, resultado.size());

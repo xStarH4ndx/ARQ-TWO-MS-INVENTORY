@@ -4,9 +4,8 @@ import com.ArqProyect.msinventory.dto.CompraCreacionDTO;
 import com.ArqProyect.msinventory.dto.ItemCompraEventoDTO;
 import com.ArqProyect.msinventory.model.Compra;
 import com.ArqProyect.msinventory.model.ItemCompra;
-import com.ArqProyect.msinventory.model.Inventario;
 import com.ArqProyect.msinventory.repository.CompraRepository;
-import com.ArqProyect.msinventory.repository.InventarioRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 public class CompraService {
 
     private final CompraRepository compraRepository;
-    private final InventarioRepository inventarioRepository;
+    private final InventarioService inventarioService;
 
     public List<Compra> listarCompras(String casaId) {
         return compraRepository.findByCasaId(casaId);
@@ -35,10 +34,38 @@ public class CompraService {
     @Transactional
     public Compra crearCompraDesdeDTO(CompraCreacionDTO compraCreacionDTO) {
         validarCompraLogicaNegocio(compraCreacionDTO);
+
         Compra compra = convertirDTOaEntidad(compraCreacionDTO);
         Compra nuevaCompra = compraRepository.save(compra);
-        actualizarInventario(nuevaCompra.getItemsCompra(), compraCreacionDTO.getCasaId());
+
+        // Actualizar el inventario con cada item usando el servicio (idempotente)
+        for (ItemCompra item : nuevaCompra.getItemsCompra()) {
+            inventarioService.aumentarStock(
+                    compraCreacionDTO.getCasaId(),
+                    item.getProductoId(),
+                    item.getNombreProducto(),
+                    (int) item.getCantidad()
+            );
+        }
+
         return nuevaCompra;
+    }
+
+    @Transactional
+    public void eliminarCompra(String id) {
+        Compra compra = compraRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Compra no encontrada con id: " + id));
+
+        // Revertir stock del inventario por cada item
+        for (ItemCompra item : compra.getItemsCompra()) {
+            inventarioService.disminuirStock(
+                    compra.getCasaId(),
+                    item.getProductoId(),
+                    (int) item.getCantidad()
+            );
+        }
+
+        compraRepository.delete(compra);
     }
 
     private Compra convertirDTOaEntidad(CompraCreacionDTO dto) {
@@ -66,67 +93,10 @@ public class CompraService {
         );
     }
 
-    public void eliminarCompra(String id) {
-        Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Compra no encontrada con id: " + id));
-        revertirInventario(compra.getItemsCompra(), compra.getCasaId());
-        compraRepository.delete(compra);
-    }
-
-    private void revertirInventario(List<ItemCompra> items, String casaId) {
-        for (ItemCompra item : items) {
-            List<Inventario> inventarios = inventarioRepository.findByCasaId(casaId).orElse(null);
-            if (inventarios != null) {
-                Inventario inventarioExistente = inventarios.stream()
-                        .filter(i -> i.getProductoId().equals(item.getProductoId()))
-                        .findFirst()
-                        .orElse(null);
-
-                if (inventarioExistente != null) {
-                    int nuevaCantidad = inventarioExistente.getCantidadStock() - item.getCantidad();
-                    inventarioExistente.setCantidadStock(Math.max(nuevaCantidad, 0)); // evitar valores negativos
-                    inventarioRepository.save(inventarioExistente);
-                }
-            }
-        }
-    }
-
-
     private void validarCompraLogicaNegocio(CompraCreacionDTO dto) {
         for (ItemCompraEventoDTO item : dto.getItems()) {
             if (!item.getEsCompartido() && item.getPropietarioId() == null) {
                 throw new IllegalArgumentException("Items no compartidos deben tener propietarioId");
-            }
-        }
-    }
-
-    private void actualizarInventario(List<ItemCompra> items, String casaId) {
-        for (ItemCompra item : items) {
-            List<Inventario> inventarios = inventarioRepository.findByCasaId(casaId).orElse(null);
-            if (inventarios != null) {
-                Inventario inventarioExistente = inventarios.stream()
-                        .filter(i -> i.getProductoId().equals(item.getProductoId()))
-                        .findFirst()
-                        .orElse(null);
-
-                if (inventarioExistente != null) {
-                    inventarioExistente.setCantidadStock(inventarioExistente.getCantidadStock() + item.getCantidad());
-                    inventarioRepository.save(inventarioExistente);
-                } else {
-                    Inventario nuevoInventario = new Inventario();
-                    nuevoInventario.setCasaId(casaId);
-                    nuevoInventario.setProductoId(item.getProductoId());
-                    nuevoInventario.setNombreProducto(item.getNombreProducto());
-                    nuevoInventario.setCantidadStock(item.getCantidad());
-                    inventarioRepository.save(nuevoInventario);
-                }
-            } else {
-                Inventario nuevoInventario = new Inventario();
-                nuevoInventario.setCasaId(casaId);
-                nuevoInventario.setProductoId(item.getProductoId());
-                nuevoInventario.setNombreProducto(item.getNombreProducto());
-                nuevoInventario.setCantidadStock(item.getCantidad());
-                inventarioRepository.save(nuevoInventario);
             }
         }
     }
