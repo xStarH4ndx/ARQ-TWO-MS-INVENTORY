@@ -114,9 +114,9 @@ public class InventoryConsumer {
 
         // 1. Construir el cuerpo del mensaje (body)
         ObjectNode gastoBody = objectMapper.createObjectNode();
+        gastoBody.put("compraId", nuevaCompra.getId());
         gastoBody.put("casaId", nuevaCompra.getCasaId());
         gastoBody.put("fechaCompra", nuevaCompra.getFechaCompra().toString());
-        gastoBody.put("compraId", nuevaCompra.getId());
         JsonNode itemsCompraNode = objectMapper.valueToTree(nuevaCompra.getItemsCompra());
         gastoBody.set("itemsCompra", itemsCompraNode);
 
