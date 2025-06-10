@@ -114,9 +114,9 @@ public class InventoryConsumer {
 
         // 1. Construir el cuerpo del mensaje (body)
         ObjectNode gastoBody = objectMapper.createObjectNode();
-        gastoBody.put("compraId", nuevaCompra.getId());
         gastoBody.put("casaId", nuevaCompra.getCasaId());
         gastoBody.put("fechaCompra", nuevaCompra.getFechaCompra().toString());
+        gastoBody.put("compraId", nuevaCompra.getId());
         JsonNode itemsCompraNode = objectMapper.valueToTree(nuevaCompra.getItemsCompra());
         gastoBody.set("itemsCompra", itemsCompraNode);
 
@@ -130,9 +130,8 @@ public class InventoryConsumer {
         messageDTO.setData(payloadDTO);
 
         // 4. Enviar el mensaje a la cola gastoCompra.queue
-        rabbitTemplate.convertAndSend("gastoCompra.queue", messageDTO);
-
-        String msg = "MS-INVENTORY: Compra creada con ID: " + nuevaCompra.getId() + " y mensaje enviado a gastoCompra.queue";
+        Object response = rabbitTemplate.convertSendAndReceive("gastoCompra.queue", messageDTO);
+        String msg = "MS-INVENTORY: Compra creada con ID: " + nuevaCompra.getId() + ". Respuesta de ms-payments: " + response;
         System.out.println(msg);
         return msg;
     }
@@ -154,13 +153,22 @@ public class InventoryConsumer {
         return compraService.obtenerCompraPorId(compraId);
     }
 
-    private String handleEliminarCompra(JsonNode data) {
+    private String handleEliminarCompra(JsonNode data) throws Exception {
         if (data == null || !data.isTextual()) {
             return "Error: el campo 'id' es requerido para eliminarCompra";
         }
         String compraId = data.asText();
         compraService.eliminarCompra(compraId);
-        String msg = "MS-INVENTORY: Compra eliminada con ID: " + compraId;
+
+        ObjectNode gastoBody = objectMapper.createObjectNode();
+        gastoBody.put("compraId", compraId);
+        PayloadDTO payloadDTO = new PayloadDTO();
+        payloadDTO.setAction("eliminarGastoCompra");
+        payloadDTO.setBody(gastoBody);
+        MessageDTO messageDTO = new MessageDTO();
+        messageDTO.setData(payloadDTO);
+        Object response = rabbitTemplate.convertSendAndReceive("gastoCompra.queue", messageDTO);
+        String msg = "MS-INVENTORY: Compra eliminada con ID: " + compraId + ". Respuesta de ms-payments: " + response;
         System.out.println(msg);
         return msg;
     }
