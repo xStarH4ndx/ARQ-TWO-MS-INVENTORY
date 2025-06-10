@@ -10,8 +10,11 @@ import com.ArqProyect.msinventory.service.InventarioService;
 import com.ArqProyect.msinventory.service.ProductoService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -24,6 +27,7 @@ public class InventoryConsumer {
     private final CompraService compraService;
     private final InventarioService inventarioService;
     private final ObjectMapper objectMapper;
+    private final RabbitTemplate rabbitTemplate;
 
     @RabbitListener(queues = "msinventory.queue")
     public Object handleInventoryQueue(MessageDTO messageDTO) {
@@ -104,15 +108,39 @@ public class InventoryConsumer {
         if (data == null) {
             throw new IllegalArgumentException("El cuerpo de la compra (body) es null");
         }
+
         CompraCreacionDTO compraDTO = objectMapper.treeToValue(data, CompraCreacionDTO.class);
         Compra nuevaCompra = compraService.crearCompraDesdeDTO(compraDTO);
-        String msg = "MS-INVENTORY: Compra creada con ID: " + nuevaCompra.getId();
+
+        // 1. Construir el cuerpo del mensaje (body)
+        ObjectNode gastoBody = objectMapper.createObjectNode();
+        gastoBody.put("compraId", nuevaCompra.getId());
+        gastoBody.put("casaId", nuevaCompra.getCasaId());
+        gastoBody.put("fechaCompra", nuevaCompra.getFechaCompra().toString());
+        JsonNode itemsCompraNode = objectMapper.valueToTree(nuevaCompra.getItemsCompra());
+        gastoBody.set("itemsCompra", itemsCompraNode);
+
+        // 2. Construir el PayloadDTO
+        PayloadDTO payloadDTO = new PayloadDTO();
+        payloadDTO.setAction("crearGastoCompra");
+        payloadDTO.setBody(gastoBody);
+
+        // 3. Construir el MessageDTO
+        MessageDTO messageDTO = new MessageDTO();
+        messageDTO.setData(payloadDTO);
+
+        // 4. Enviar el mensaje a la cola gastoCompra.queue
+        rabbitTemplate.convertAndSend("gastoCompra.queue", messageDTO);
+
+        String msg = "MS-INVENTORY: Compra creada con ID: " + nuevaCompra.getId() + " y mensaje enviado a gastoCompra.queue";
+        System.out.println(msg);
         return msg;
     }
 
+
     private List<Compra> handleListarCompras(JsonNode data) {
         if (data == null || !data.isTextual()) {
-            throw new IllegalArgumentException("El campo 'id' es requerido para obtenerCompra");
+            throw new IllegalArgumentException("El campo 'id' es requerido para listarCompras");
         }
         String casaId = data.asText();
         return compraService.listarCompras(casaId);
