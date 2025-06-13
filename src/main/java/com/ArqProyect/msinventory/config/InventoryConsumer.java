@@ -139,7 +139,7 @@ public class InventoryConsumer {
 
     private List<Compra> handleListarCompras(JsonNode data) {
         if (data == null || !data.isTextual()) {
-            throw new IllegalArgumentException("El campo 'id' es requerido para listarCompras");
+            throw new IllegalArgumentException("El campo 'casaId' es requerido para listarCompras");
         }
         String casaId = data.asText();
         return compraService.listarCompras(casaId);

@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
 import java.util.List;
 
 @Data
@@ -17,9 +16,6 @@ public class CompraCreacionDTO {
 
     @NotNull(message = "El ID de la casa es obligatorio")
     private String casaId;
-
-    @NotNull(message = "La fecha de compra es obligatoria")
-    private Date fechaCompra;
 
     @NotEmpty(message = "Debe haber al menos un item en la compra")
     @Valid // Permite la validación en cascada de los ItemCompraEventoDTO

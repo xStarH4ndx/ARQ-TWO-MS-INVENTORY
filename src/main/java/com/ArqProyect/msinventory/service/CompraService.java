@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -71,7 +70,7 @@ public class CompraService {
     private Compra convertirDTOaEntidad(CompraCreacionDTO dto) {
         Compra compra = new Compra();
         compra.setCasaId(dto.getCasaId());
-        compra.setFechaCompra(Instant.now());
+        compra.setFechaCompra(java.time.LocalDateTime.now().toString());
         compra.setItemsCompra(convertirItemDTOsAEntidades(dto.getItems()));
         return compra;
     }
