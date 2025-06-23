@@ -1,98 +1,79 @@
-// package com.ArqProyect.msinventory.service;
+// CompraServiceTest.java
+package com.ArqProyect.msinventory.service;
 
-// import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-// import java.util.Arrays;
+import com.ArqProyect.msinventory.dto.CompraCreacionDTO;
+import com.ArqProyect.msinventory.dto.ItemCompraEventoDTO;
+import com.ArqProyect.msinventory.model.Compra;
+import com.ArqProyect.msinventory.model.ItemCompra;
+import com.ArqProyect.msinventory.repository.CompraRepository;
 
-// import org.junit.jupiter.api.BeforeEach;
-// import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-// import com.ArqProyect.msinventory.dto.CompraCreacionDTO;
-// import com.ArqProyect.msinventory.dto.ItemCompraEventoDTO;
-// import com.ArqProyect.msinventory.model.Compra;
+import java.util.*;
 
-// public class CompraServiceTest {
+public class CompraServiceTest {
 
-//     private CompraService compraService;
+    @Mock
+    private CompraRepository compraRepository;
 
-//     @BeforeEach
-//     public void setUp() {
-//         compraService = new CompraService(null, null);
-//     }
+    @Mock
+    private InventarioService inventarioService;
 
-//     @Test
-//     public void crearCompra_conDatosValidos_debeGuardarCompra() {
-//         CompraCreacionDTO compraDTO = new CompraCreacionDTO();
-//         ItemCompraEventoDTO item1 = new ItemCompraEventoDTO();
-//         item1.setEsCompartido(false);
-//         item1.setPropietarioId("1L");
+    @InjectMocks
+    private CompraService compraService;
 
-//         ItemCompraEventoDTO item2 = new ItemCompraEventoDTO();
-//         item2.setEsCompartido(true);
-//         item2.setPropietarioId("2L");
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
-//         compraDTO.setItems(Arrays.asList(item1, item2));
+    @Test
+    void testListarCompras() {
+        List<Compra> compras = List.of(new Compra("1", "casa1", "fecha", List.of()));
+        when(compraRepository.findByCasaId("casa1")).thenReturn(compras);
 
-//         Compra compra = compraService.crearCompraDesdeDTO(compraDTO);
+        List<Compra> result = compraService.listarCompras("casa1");
+        assertEquals(1, result.size());
+        verify(compraRepository).findByCasaId("casa1");
+    }
 
-//         assertNotNull(compra);
-//         assertNotNull(compra.getItemsCompra());
-//         assertEquals(2, compra.getItemsCompra().size());
-//     }
+    @Test
+    void testObtenerCompraPorId() {
+        Compra compra = new Compra("1", "casa1", "fecha", List.of());
+        when(compraRepository.findById("1")).thenReturn(Optional.of(compra));
 
-//     /*
-//     @Test
-//     public void crearCompra_conListaVacia_debeLanzarExcepcion() {
-//         CompraCreacionDTO compraDTO = new CompraCreacionDTO();
-//         compraDTO.setItems(new ArrayList<>()); // lista vacía
+        Compra result = compraService.obtenerCompraPorId("1");
+        assertEquals("1", result.getId());
+    }
 
-//         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
-//             compraService.crearCompraDesdeDTO(compraDTO);
-//         });
-//         assertEquals("La lista de items no puede ser nula ni vacía", thrown.getMessage());
-//     }
-//     */
+    @Test
+    void testCrearCompraDesdeDTO() {
+        ItemCompraEventoDTO itemDTO = new ItemCompraEventoDTO("prod1", "producto", 2, 10.0, false, "prop1");
+        CompraCreacionDTO dto = new CompraCreacionDTO("casa1", List.of(itemDTO));
 
-//     /*
-//     @Test
-//     public void crearCompra_conItemCompartidoYPropietarioIdNull_debeLanzarExcepcion() {
-//         CompraCreacionDTO compraDTO = new CompraCreacionDTO();
-//         ItemCompraEventoDTO item = new ItemCompraEventoDTO();
-//         item.setEsCompartido(true);
-//         item.setPropietarioId(null); // Aquí se fuerza el null para testear excepción
+        when(compraRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-//         compraDTO.setItems(Arrays.asList(item));
+        Compra result = compraService.crearCompraDesdeDTO(dto);
+        assertEquals("casa1", result.getCasaId());
+        verify(inventarioService).aumentarStock("casa1", "prod1", "producto", 2);
+    }
 
-//         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
-//             compraService.crearCompraDesdeDTO(compraDTO);
-//         });
-//         assertEquals("PropietarioId no puede ser null", thrown.getMessage());
-//     }
-//     */
+    @Test
+    void testEliminarCompra() {
+        ItemCompra item = new ItemCompra("prod1", "producto", 2, 10.0, false, "prop1");
+        Compra compra = new Compra("1", "casa1", "fecha", List.of(item));
 
-//     /*
-//     @Test
-//     public void crearCompra_conMultiplesItems_debeGuardarCorrectamente() {
-//         CompraCreacionDTO compraDTO = new CompraCreacionDTO();
+        when(compraRepository.findById("1")).thenReturn(Optional.of(compra));
 
-//         ItemCompraEventoDTO item1 = new ItemCompraEventoDTO();
-//         item1.setEsCompartido(false);
-//         item1.setPropietarioId(1L);
-
-//         ItemCompraEventoDTO item2 = new ItemCompraEventoDTO();
-//         item2.setEsCompartido(true);
-//         item2.setPropietarioId(2L);
-
-//         ItemCompraEventoDTO item3 = new ItemCompraEventoDTO();
-//         item3.setEsCompartido(false);
-//         item3.setPropietarioId(3L);
-
-//         compraDTO.setItems(Arrays.asList(item1, item2, item3));
-
-//         Compra compra = compraService.crearCompraDesdeDTO(compraDTO);
-
-//         assertNotNull(compra);
-//         assertEquals(3, compra.getItemsCompra().size());
-//     }
-//     */
-// }
+        compraService.eliminarCompra("1");
+        verify(inventarioService).disminuirStock("casa1", "prod1", 2);
+        verify(compraRepository).delete(compra);
+    }
+}
