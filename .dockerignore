@@ -1,5 +1,5 @@
-target/
-!target/ms-subjects-0.0.1-SNAPSHOT.jar
 .git
 *.iml
-.idea
+.idea/
+.env
+target/
